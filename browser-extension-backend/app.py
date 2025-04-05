@@ -23,49 +23,63 @@ def search_products():
 
     search_url = f"{BASE_URL}/search?q={query}"
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        "Accept-Language": "en-US,en;q=0.9",
     }
 
     try:
+        print("🔍 Searching on ReFitGlobal:", search_url)
         response = requests.get(search_url, headers=headers)
+
         if response.status_code != 200:
+            print(f"❌ Failed to fetch data. Status code: {response.status_code}")
             return jsonify({"error": "Failed to fetch data from ReFit"}), 500
 
         soup = BeautifulSoup(response.text, "lxml")
         product_cards = soup.find_all("div", class_='card__content')
+        print(f"🧾 Found {len(product_cards)} product cards")
 
         product_list = []
         seen_titles = set()
 
-        for card in product_cards:
-            link_tag = card.select_one("a.full-unstyled-link")
-            title_tag = card.select_one("h3.card__heading")
-            price_tag = card.select_one("span.price-item--regular")
-            image_tag = card.select_one("img")
+        for i, card in enumerate(product_cards):
+            try:
+                link_tag = card.select_one("a.full-unstyled-link")
+                title_tag = card.select_one("h3.card__heading")
+                price_tag = card.select_one("span.price-item--regular")
+                image_tag = card.select_one("img")
 
-            if not link_tag or not title_tag or not price_tag or not image_tag:
-                continue
+                if not all([link_tag, title_tag, price_tag, image_tag]):
+                    print(f"⚠️ Skipping card {i} due to missing elements")
+                    continue
 
-            title = title_tag.get_text(strip=True)
-            price = price_tag.get_text(strip=True)
-            image_url = urljoin(BASE_URL, image_tag["src"])
+                title = title_tag.get_text(strip=True)
+                price = price_tag.get_text(strip=True)
+                image_url = urljoin(BASE_URL, image_tag["src"])
 
-            raw_link = link_tag["href"]
-            clean_link = raw_link.split("?")[0]
-            link = urljoin(BASE_URL, clean_link)
+                raw_link = link_tag["href"]
+                clean_link = raw_link.split("?")[0]
+                link = urljoin(BASE_URL, clean_link)
 
-            if title not in seen_titles and is_relevant(query, title):
-                seen_titles.add(title)
-                product_list.append({
-                    "title": title,
-                    "price": price,
-                    "link": link,
-                    "image": image_url
-                })
+                print(f"✅ Card {i}: {title} | {price}")
+
+                if title not in seen_titles and is_relevant(query, title):
+                    seen_titles.add(title)
+                    product_list.append({
+                        "title": title,
+                        "price": price,
+                        "link": link,
+                        "image": image_url
+                    })
+
+            except Exception as inner_e:
+                print(f"💥 Error processing card {i}:", inner_e)
 
         return jsonify(product_list)
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
