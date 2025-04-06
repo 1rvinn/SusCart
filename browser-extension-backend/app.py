@@ -110,7 +110,7 @@ def fetch_greenfeels(query):
                 results.append({
                     "site": "GreenFeels",
                     "title": name,
-                    "price": f"₹{price}",
+                    "price": f"₹{float(price/100)}",
                     "link": f"{BASE_URL}/products/{handle}",
                     "image": None
                 })
