@@ -25,11 +25,12 @@ def refine_query_with_mistral(product_title):
 Given this product title: '{product_title}'
 
 Return:
-- If it is a **smartphone, laptop, or other named tech product**, return the model name (e.g. 'iphone 14', 'macbook air', 'galaxy s21') — lowercase.
-- Otherwise, return the **general product type** in 1–3 words, lowercase, no brand or color.
+- If it is a **smartphone, laptop, or other named tech product**, return the model name (e.g. 'iphone%2014', 'macbook%20air', 'galaxy%20s21') — all lowercase and replace spaces with '%20'.
+- Otherwise, return the **general product type** in 1–3 words, lowercase, and also replace spaces with '%20'. No brand or color.
 
 Respond with only the final result, no explanation.
 """
+
 
     payload = {
         "model": MODEL_ID,
@@ -109,7 +110,7 @@ def fetch_greenfeels(query):
                 if not data:
                     continue
                 product_data = json.loads(data)
-               ''' name = product_data.get("name", "Unnamed")
+                ''' name = product_data.get("name", "Unnamed")
                 handle = product_data.get("handle", "")
                 price = product_data.get("variants", [{}])[0].get("price", "0")
                '''
