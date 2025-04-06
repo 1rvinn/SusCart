@@ -109,12 +109,18 @@ def fetch_greenfeels(query):
                 if not data:
                     continue
                 product_data = json.loads(data)
-                name = product_data.get("name", "Unnamed")
+               ''' name = product_data.get("name", "Unnamed")
                 handle = product_data.get("handle", "")
                 price = product_data.get("variants", [{}])[0].get("price", "0")
-                #raw_price = product_data.get("variants", [{}])[0].get("price", "0")
-                #price = str(int(float(raw_price))) if raw_price.endswith(".00") else raw_price
-
+               '''
+                variants = product_data.get("variants", [])
+                if variants:
+                    name = variants[0].get("name", "Unnamed")
+                else:
+                    name = "Unnamed"
+                handle = product_data.get("handle", "")
+                price = variants[0].get("price", "0") if variants else "0"
+                price=float(price/100)
                 results.append({
                     "site": "GreenFeels",
                     "title": name,
