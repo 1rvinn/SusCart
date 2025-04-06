@@ -187,7 +187,7 @@ def search_products():
     results += fetch_refit(refined_query)
     results += fetch_brownliving(refined_query)
     # Add this line back if you want GreenFeels results too
-    # results += fetch_greenfeels(refined_query)
+    results += fetch_greenfeels(refined_query)
 
     return jsonify(results)
 
