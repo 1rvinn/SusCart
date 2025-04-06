@@ -61,7 +61,7 @@ function displayProducts(products) {
     container.style.boxShadow = "2px 2px 10px rgba(0,0,0,0.2)";
 
     let title = document.createElement("h3");
-    title.innerText = "♻️ Refurbished Alternatives";
+    title.innerText = "♻️ Eco - Friendly Alternatives";
     container.appendChild(title);
 
     products.forEach(product => {

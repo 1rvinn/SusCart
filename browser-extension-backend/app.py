@@ -9,11 +9,9 @@ import json
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-# OpenRouter API Key
 OPENROUTER_API_KEY = "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"
 MODEL_ID = "mistralai/mistral-small-3.1-24b-instruct:free"
 
-# ----------- Query Refinement using OpenRouter (Mistral) ----------- #
 def refine_query_with_mistral(product_title):
     url = "https://openrouter.ai/api/v1/chat/completions"
     headers = {
@@ -23,7 +21,15 @@ def refine_query_with_mistral(product_title):
         "X-Title": "EcoSearchApp",
     }
 
-    prompt = f"Extract only the general product type from this product title: '{product_title}'. Keep it short (1-3 words), lowercase, no brand or color."
+    prompt = f"""
+Given this product title: '{product_title}'
+
+Return:
+- If it is a **smartphone, laptop, or other named tech product**, return the model name (e.g. 'iphone 14', 'macbook air', 'galaxy s21') — lowercase.
+- Otherwise, return the **general product type** in 1–3 words, lowercase, no brand or color.
+
+Respond with only the final result, no explanation.
+"""
 
     payload = {
         "model": MODEL_ID,
@@ -47,12 +53,13 @@ def refine_query_with_mistral(product_title):
 def is_relevant(query, title):
     return fuzz.partial_ratio(query.lower(), title.lower()) > 60
 
-# ------------------- ReFitGlobal Scraper ------------------- #
+# ---------------- ReFitGlobal ---------------- #
 def fetch_refit(query):
     BASE_URL = "https://refitglobal.com"
     search_url = f"{BASE_URL}/search?q={query}"
     headers = {"User-Agent": "Mozilla/5.0"}
 
+    print(f"🔍 Searching ReFitGlobal: {search_url}")
     try:
         response = requests.get(search_url, headers=headers)
         soup = BeautifulSoup(response.text, "lxml")
@@ -60,14 +67,13 @@ def fetch_refit(query):
 
         results, seen = [], set()
         for i, card in enumerate(cards):
-            if len(results) >= 2: break
             try:
                 title = card.select_one("h3.card__heading").get_text(strip=True)
                 price = card.select_one("span.price-item--regular").get_text(strip=True)
                 link = urljoin(BASE_URL, card.select_one("a.full-unstyled-link")["href"].split("?")[0])
                 image = urljoin(BASE_URL, card.select_one("img")["src"])
 
-                if title in seen or not is_relevant(query, title): continue
+                if title in seen: continue
                 seen.add(title)
 
                 results.append({
@@ -84,12 +90,13 @@ def fetch_refit(query):
         print("❌ Error fetching from ReFit:", e)
         return []
 
-# ------------------- GreenFeels Scraper ------------------- #
+# ---------------- GreenFeels ---------------- #
 def fetch_greenfeels(query):
     BASE_URL = "https://greenfeels.in"
     search_url = f"{BASE_URL}/search?q={query}&options%5Bprefix%5D=last&type=product"
     headers = {"User-Agent": "Mozilla/5.0"}
 
+    print(f"🔍 Searching GreenFeels: {search_url}")
     try:
         response = requests.get(search_url, headers=headers)
         soup = BeautifulSoup(response.text, "html.parser")
@@ -97,7 +104,6 @@ def fetch_greenfeels(query):
 
         results = []
         for i, product in enumerate(products):
-            if len(results) >= 2: break
             try:
                 data = product.find("div", class_="product-item").get("data-json-product")
                 if not data:
@@ -123,12 +129,13 @@ def fetch_greenfeels(query):
         print("❌ Error fetching from GreenFeels:", e)
         return []
 
-# ------------------- BrownLiving Scraper ------------------- #
+# ---------------- BrownLiving ---------------- #
 def fetch_brownliving(query):
     BASE_URL = "https://brownliving.in"
     search_url = f"{BASE_URL}/search?options%5Bprefix%5D=last&q={query}"
     headers = {"User-Agent": "Mozilla/5.0"}
 
+    print(f"🔍 Searching BrownLiving: {search_url}")
     try:
         response = requests.get(search_url, headers=headers)
         soup = BeautifulSoup(response.text, "html.parser")
@@ -136,7 +143,6 @@ def fetch_brownliving(query):
 
         results = []
         for i, container in enumerate(product_containers):
-            if len(results) >= 2: break
             try:
                 title_tag = container.select_one("a.product-card__title")
                 price_tag = container.select_one("span.money")
@@ -160,7 +166,7 @@ def fetch_brownliving(query):
         print("❌ Error fetching from BrownLiving:", e)
         return []
 
-# ------------------- Flask Endpoint ------------------- #
+# ---------------- Flask Endpoint ---------------- #
 @app.route("/search", methods=["GET"])
 def search_products():
     original_query = request.args.get("query", "").strip()
@@ -173,8 +179,9 @@ def search_products():
 
     results = []
     results += fetch_refit(refined_query)
-    results += fetch_greenfeels(refined_query)
     results += fetch_brownliving(refined_query)
+    # Add this line back if you want GreenFeels results too
+    # results += fetch_greenfeels(refined_query)
 
     return jsonify(results)
 
