@@ -106,6 +106,8 @@ def fetch_greenfeels(query):
                 name = product_data.get("name", "Unnamed")
                 handle = product_data.get("handle", "")
                 price = product_data.get("variants", [{}])[0].get("price", "0")
+                #raw_price = product_data.get("variants", [{}])[0].get("price", "0")
+                #price = str(int(float(raw_price))) if raw_price.endswith(".00") else raw_price
 
                 results.append({
                     "site": "GreenFeels",
